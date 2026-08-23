@@ -2,12 +2,15 @@ import asynchandler from "express-async-handler";
 import User from "../models/User.model.js";
 import Course from "../models/Course.model.js";
 import jsend from "jsend";
+import Enrollment from "../models/Enrollment.model.js";
+import bcrypt from "bcryptjs";
 
 export const adminDashboard = asynchandler(async (req, res) => {
   const totalUsers = await User.countDocuments();
   const totalCourses = await Course.countDocuments();
   const totalInstructors = await User.countDocuments({ role: "instructor" });
   const totalStudents = await User.countDocuments({ role: "student" });
+  const totalEnrollments = await Enrollment.countDocuments();
   const totalPublishedCourses = await Course.countDocuments({
     status: "published",
   });
@@ -30,29 +33,47 @@ export const adminDashboard = asynchandler(async (req, res) => {
       totalInstructors,
       totalStudents,
       totalPublishedCourses,
+      totalDraftCourse,
+      totalEnrollments,
       latestUsers,
       latestCourses,
     }),
   );
 });
 
-// change user role
-export const changeUserRole = asynchandler(async (req, res) => {
-  const { role } = req.body;
-  const { userId } = req.params;
-  const validRoles = ["student", "instructor", "admin"];
-  if (!validRoles.includes(role)) {
-    return res.status(400).json(jsend.error("Invalid role"));
-  }
-  const user = await User.findById(userId).select("-password -__v");
-
-  if (!user) {
-    return res.status(404).json(jsend.error("User not found"));
+// create instructor
+export const createInstructor = asynchandler(async (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password) {
+    return res
+      .status(400)
+      .json(jsend.error("Name, email and password are required."));
   }
 
-  user.role = role;
-  await user.save();
-  res.json(jsend.success(user));
+  const existingUser = await User.findOne({
+    email,
+  });
+
+  if (existingUser) {
+    return res.status(409).json(jsend.error("Email is already registered."));
+  }
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const instructor = await User.create({
+    name,
+    email,
+    password: hashedPassword,
+    role: "instructor",
+  });
+
+  res.status(201).json(
+    jsend.success({
+      _id: instructor._id,
+      name: instructor.name,
+      email: instructor.email,
+      role: instructor.role,
+    }),
+  );
 });
 
 // suspended user

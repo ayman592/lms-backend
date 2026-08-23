@@ -24,8 +24,22 @@ const courseSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["draft", "published"],
-      default: "draft",
+      default: "published",
+    },
+    level: {
+      type: String,
+      enum: ["Beginner", "Intermediate", "Advanced"],
+      default: "Beginner",
+    },
+    thumbnail: {
+      url: {
+        type: String,
+        required: true,
+      },
+      publicId: {
+        type: String,
+        required: true,
+      },
     },
 
     price: {
@@ -36,9 +50,11 @@ const courseSchema = new mongoose.Schema(
     thumbnail: {
       url: {
         type: String,
+        required: true,
       },
       publicId: {
         type: String,
+        required: true,
       },
     },
   },

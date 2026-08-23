@@ -69,3 +69,20 @@ export const getCourseStudents = asynchandler(async (req, res) => {
   );
   res.json(jsend.success(students));
 });
+
+export const checkEnrollment = asynchandler(async (req, res) => {
+  const { courseId } = req.params;
+  const studentId = req.user._id;
+
+  const enrollment = await Enrollment.findOne({
+    course: courseId,
+    student: studentId,
+  });
+
+  res.json(
+    jsend.success({
+      enrolled: !!enrollment,
+      enrollment: enrollment || null,
+    }),
+  );
+});

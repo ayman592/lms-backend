@@ -5,12 +5,11 @@ import {
   updateCourse,
   deleteCourse,
   getCourseDetails,
-  searchCourses,
-  filterCourses,
 } from "../controllers/course.controller.js";
 
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import role from "../middlewares/roleMiddleware.js";
+import { uploadImage } from "../middlewares/uploudMiddleware.js";
 
 const courseRoutes = express.Router();
 
@@ -20,12 +19,14 @@ courseRoutes.post(
   "/",
   authMiddleware,
   role("admin", "instructor"),
+  uploadImage.single("thumbnail"),
   createCourse,
 );
 courseRoutes.put(
   "/:id",
   authMiddleware,
   role("admin", "instructor"),
+  uploadImage.single("thumbnail"),
   updateCourse,
 );
 
@@ -35,7 +36,5 @@ courseRoutes.delete(
   role("admin", "instructor"),
   deleteCourse,
 );
-courseRoutes.get("/search", searchCourses);
-courseRoutes.get("/filter", filterCourses);
 
 export default courseRoutes;

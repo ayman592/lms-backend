@@ -4,21 +4,36 @@ import jsend from "jsend";
 import { generateToken } from "../utils/jwt.js";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../utils/sendEmail.js";
+import { uploadImageToCloudinary } from "../utils/cloudinaryVideo.js";
 
 export const register = asynchandler(async (req, res) => {
   const { name, email, password } = req.body;
+
   const userExists = await User.exists({ email });
 
   if (userExists) {
-    return res.status(404).json(jsend.error("user already exists"));
+    return res.status(409).json(jsend.error("User already exists"));
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
+
+  let profilePicture = null;
+
+  if (req.file) {
+    const result = await uploadImageToCloudinary(req.file.path);
+
+    profilePicture = {
+      url: result.secure_url,
+      publicId: result.public_id,
+    };
+  }
 
   const user = await User.create({
     name,
     email,
     password: hashedPassword,
+    profilePicture,
+    role: "student",
   });
 
   const token = generateToken(user._id, user.role, user.name);
@@ -26,11 +41,16 @@ export const register = asynchandler(async (req, res) => {
   res.cookie("token", token, {
     maxAge: 3600000,
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: false,
     sameSite: "strict",
   });
 
-  res.json(jsend.success({ user, token }));
+  res.status(201).json(
+    jsend.success({
+      user,
+      token,
+    }),
+  );
 });
 
 export const login = asynchandler(async (req, res) => {
@@ -48,13 +68,13 @@ export const login = asynchandler(async (req, res) => {
   res.cookie("token", token, {
     httpOnly: true,
     maxAge: 3600000,
-    secure: process.env.NODE_ENV === "production",
+    secure: false,
   });
 
   res.json(jsend.success({ user, token }));
 });
 
-export const changePassword = asynchandler(async (res, req) => {
+export const changePassword = asynchandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   const user = await User.findById(req.user._id);
@@ -63,8 +83,7 @@ export const changePassword = asynchandler(async (res, req) => {
     return res.status(404).json(jsend.error("user not found"));
   }
 
-  const matchPassword = await user.matchPassword(currentPassword);
-
+  const matchPassword = await bcrypt.compare(currentPassword, user.password);
   if (!matchPassword) {
     return res.status(404).json(jsend.error("current password is incorrect"));
   }
@@ -158,11 +177,16 @@ export const updateProfile = asynchandler(async (req, res) => {
       return res.status(409).json(jsend.error("email already exists"));
     }
   }
+  const result = await uploadImageToCloudinary(req.file.path);
 
   user.name = name ?? user.name;
   user.email = email ?? user.email;
-
-  await user.save();
+  ((user.profilePicture =
+    {
+      url: result.secure_url,
+      publicId: result.public_id,
+    } ?? user.profilePicture),
+    await user.save());
 
   res.json(
     jsend.success({
@@ -171,6 +195,7 @@ export const updateProfile = asynchandler(async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        profilePicture: user.profilePicture,
       },
     }),
   );

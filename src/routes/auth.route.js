@@ -18,10 +18,15 @@ import {
   validateResetPassword,
   validateUpdateProfile,
 } from "../validations/auth.validation.js";
-
+import { uploadImage } from "../middlewares/uploudMiddleware.js";
 const AuthRouter = express.Router();
 
-AuthRouter.post("/register", validateRegister, register);
+AuthRouter.post(
+  "/register",
+  validateRegister,
+  uploadImage.single("profilePicture"),
+  register,
+);
 AuthRouter.post("/login", validateLogin, login);
 AuthRouter.put(
   "/change-password",
@@ -36,6 +41,7 @@ AuthRouter.get("/me", authMiddleware, getMe);
 AuthRouter.put(
   "/update-profile",
   authMiddleware,
+  uploadImage.single("profilePicture"),
   validateUpdateProfile,
   updateProfile,
 );

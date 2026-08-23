@@ -1,8 +1,7 @@
 import express from "express";
 import {
   getInstructorDashboard,
-  getMyDraftCourses,
-  getMyPublishedCourses,
+  getMyCourses,
 } from "../controllers/instructorDashboard.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import role from "../middlewares/roleMiddleware.js";
@@ -16,16 +15,10 @@ instructorDashboardRoutes.get(
   getInstructorDashboard,
 );
 instructorDashboardRoutes.get(
-  "/my-draft-courses",
+  "/my-courses",
   authMiddleware,
   role("instructor"),
-  getMyDraftCourses,
-);
-instructorDashboardRoutes.get(
-  "/my-published-courses",
-  authMiddleware,
-  role("instructor"),
-  getMyPublishedCourses,
+  getMyCourses,
 );
 
 export default instructorDashboardRoutes;

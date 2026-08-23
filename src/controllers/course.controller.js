@@ -1,26 +1,65 @@
 import asynchandler from "express-async-handler";
 import Course from "../models/Course.model.js";
 import jsend from "jsend";
+import { uploadImageToCloudinary } from "../utils/cloudinaryVideo.js";
 
 export const getCourses = asynchandler(async (req, res) => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
-  const skip = (page - 1) * limit;
-  const courses = await Course.find({ status: "published" })
-    .populate("instructor", "name email")
-    .skip(skip)
-    .limit(limit);
+  const {
+    page = 1,
+    limit = 9,
+    search = "",
+    category = "",
+    level = "",
+  } = req.query;
 
-  if (courses.length === 0) {
-    return res.status(404).json(jsend.error("courses not found"));
+  const currentPage = Math.max(Number(page), 1);
+
+  const pageLimit = Math.max(Number(limit), 1);
+
+  const skip = (currentPage - 1) * pageLimit;
+
+  const filter = {
+    status: "published",
+  };
+
+  // Search
+  if (search.trim()) {
+    filter.$text = {
+      $search: search.trim(),
+    };
   }
 
-  const total = await Course.countDocuments({
-    status: "published",
-  });
+  // Category
+  if (category.trim()) {
+    filter.category = category.trim();
+  }
 
-  res.json(
-    jsend.success({ courses, total, page, pages: Math.ceil(total / limit) }),
+  // Level
+  if (level.trim()) {
+    filter.level = level.trim();
+  }
+
+  const [courses, total] = await Promise.all([
+    Course.find(filter)
+      .populate("instructor", "name email")
+      .sort({
+        createdAt: -1,
+      })
+      .skip(skip)
+      .limit(pageLimit),
+
+    Course.countDocuments(filter),
+  ]);
+
+  const pages = Math.ceil(total / pageLimit);
+
+  res.status(200).json(
+    jsend.success({
+      courses,
+      total,
+      page: currentPage,
+      pages,
+    }),
   );
 });
 
@@ -38,11 +77,19 @@ export const getCourseDetails = asynchandler(async (req, res) => {
 });
 
 export const createCourse = asynchandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json(jsend.error("image not found"));
+  }
+  const result = await uploadImageToCloudinary(req.file.path);
   const course = await Course.create({
     title: req.body.title,
     description: req.body.description,
     instructor: req.user._id,
     category: req.body.category,
+    thumbnail: {
+      url: result.secure_url,
+      publicId: result.public_id,
+    },
 
     status: "draft",
   });
@@ -65,7 +112,11 @@ export const updateCourse = asynchandler(async (req, res) => {
   course.description = req.body.description ?? course.description;
   course.category = req.body.category ?? course.category;
   course.status = req.body.status ?? course.status;
-
+  const result = await uploadImageToCloudinary(req.file.path);
+  course.thumbnail = {
+    url: result.secure_url,
+    publicId: result.public_id,
+  };
   await course.save();
   res.json(jsend.success({ message: "course updated success....", course }));
 });
@@ -85,28 +136,4 @@ export const deleteCourse = asynchandler(async (req, res) => {
 
   await course.remove();
   res.json(jsend.success({ message: "course deleted success...." }));
-});
-
-export const searchCourses = asynchandler(async (req, res) => {
-  const { query } = req.query;
-  const courses = await Course.find({
-    $text: { $search: query },
-    status: "published",
-  })
-    .populate("instructor", "name email")
-    .sort({ createdAt: -1 });
-
-  res.json(jsend.success({ courses }));
-});
-
-export const filterCourses = asynchandler(async (req, res) => {
-  const { status, category } = req.query;
-  const courses = await Course.find({
-    status: status || "published",
-    category: category || { $exists: true },
-  })
-    .populate("instructor", "name email")
-    .sort({ createdAt: -1 });
-
-  res.json(jsend.success({ courses }));
 });

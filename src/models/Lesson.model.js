@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { type } from "os";
 
 const lessonSchema = new mongoose.Schema(
   {
@@ -6,11 +7,14 @@ const lessonSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
-    content: {
+    description: {
       type: String,
-      required: true,
     },
+
+    // content: {
+    //   type: String,
+    //   required: true,
+    // },
 
     video: {
       url: {
@@ -26,6 +30,11 @@ const lessonSchema = new mongoose.Schema(
 
     order: {
       type: Number,
+      required: true,
+    },
+    instructor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
 

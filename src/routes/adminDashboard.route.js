@@ -1,11 +1,11 @@
 import express from "express";
 import {
   adminDashboard,
-  changeUserRole,
   suspendUser,
   activateUser,
   deleteUser,
   getAllUsers,
+  createInstructor,
 } from "../controllers/adminDashboard.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import role from "../middlewares/roleMiddleware.js";
@@ -18,11 +18,11 @@ adminDashboardRoutes.get(
   role("admin"),
   adminDashboard,
 );
-adminDashboardRoutes.put(
-  "/change-role/:userId",
+adminDashboardRoutes.post(
+  "/create-instructor",
   authMiddleware,
   role("admin"),
-  changeUserRole,
+  createInstructor,
 );
 adminDashboardRoutes.patch(
   "/suspend-user/:userId",

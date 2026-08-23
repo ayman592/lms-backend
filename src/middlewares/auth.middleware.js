@@ -5,14 +5,18 @@ import jsend from "jsend";
 const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : req.cookies.token;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!token) {
       return res
         .status(401)
         .json(jsend.error("Unauthorized: No token provided"));
     }
-
-    const token = authHeader.split(" ")[1] || req.cookies.token;
+    console.log("Cookies:", req.cookies);
+    console.log("Token:", req.cookies.token);
+    console.log("Authorization:", req.headers.authorization);
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
