@@ -32,6 +32,8 @@ app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/admin", adminDashboardRoutes);
 app.use("/api/instructor", instructorDashboardRoutes);
 
-app.listen(process.env.port, () => {
-  console.log(`Server is running on port ${process.env.port}`);
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
