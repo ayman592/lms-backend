@@ -9,6 +9,9 @@ const authMiddleware = async (req, res, next) => {
       ? authHeader.split(" ")[1]
       : req.cookies.token;
 
+    console.log("COOKIES:", req.cookies);
+    console.log("AUTHORIZATION:", req.headers.authorization);
+
     if (!token) {
       return res
         .status(401)

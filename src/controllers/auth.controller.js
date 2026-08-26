@@ -41,8 +41,8 @@ export const register = asynchandler(async (req, res) => {
   res.cookie("token", token, {
     maxAge: 3600000,
     httpOnly: true,
-    secure: false,
-    sameSite: "strict",
+    secure: true,
+    sameSite: "none",
   });
 
   res.status(201).json(
@@ -68,7 +68,8 @@ export const login = asynchandler(async (req, res) => {
   res.cookie("token", token, {
     httpOnly: true,
     maxAge: 3600000,
-    secure: false,
+    secure: true,
+    sameSite: "none",
   });
 
   res.json(jsend.success({ user, token }));
