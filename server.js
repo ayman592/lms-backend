@@ -31,6 +31,12 @@ app.use("/api/lessons", lessonRoutes);
 app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/admin", adminDashboardRoutes);
 app.use("/api/instructor", instructorDashboardRoutes);
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "LMS Backend is running",
+  });
+});
 
 const PORT = process.env.PORT || 3000;
 
