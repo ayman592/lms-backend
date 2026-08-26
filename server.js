@@ -11,7 +11,7 @@ import adminDashboardRoutes from "./src/routes/adminDashboard.route.js";
 import instructorDashboardRoutes from "./src/routes/instructorDashboard.route.js";
 import cookieParser from "cookie-parser";
 dotenv.config();
-
+console.log("FRUONT_URL:", process.env.FRUONT_URL);
 connectDB();
 
 const app = express();
