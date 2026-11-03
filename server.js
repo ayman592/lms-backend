@@ -26,9 +26,10 @@ const app = express();
 app.set("trust proxy", 1);
 
 const allowedOrigins = [
+  process.env.FRONTEND_URL,
   "https://lms-frontend-r9ivnhdyc-ayman592s-projects.vercel.app",
   "https://lms-frontend-ruby-chi.vercel.app",
-  process.env.FRONTEND_URL || "http://localhost:5173",
+  "http://localhost:5173",
 ];
 
 app.use(
