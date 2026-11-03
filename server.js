@@ -25,9 +25,22 @@ const app = express();
 
 app.set("trust proxy", 1);
 
+const allowedOrigins = [
+  "https://lms-frontend-r9ivnhdyc-ayman592s-projects.vercel.app",
+  "https://lms-frontend-ruby-chi.vercel.app",
+  process.env.FRONTEND_URL || "http://localhost:5173",
+];
+
 app.use(
   cors({
-    origin: process.env.FRUONT_URL,
+    origin: (origin, callback) => {
+      // السماح بالطلبات التي لا تحتوي على Origin
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   }),
 );
