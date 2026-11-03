@@ -20,9 +20,15 @@ import fs from "fs";
 // ======================================================
 
 export const getLessons = asynchandler(async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 10, 20); // Default limit to 10 if not provided
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const skip = (page - 1) * limit;
   const lessons = await Lesson.find({
     course: req.params.courseId,
-  }).sort("order");
+  })
+    .sort("order")
+    .limit(limit)
+    .skip(skip);
 
   if (!lessons || lessons.length === 0) {
     return res
@@ -136,6 +142,10 @@ export const createLesson = asynchandler(async (req, res) => {
         publicId: result.public_id,
       },
     });
+
+    // Increment the lessonCount in the Course model
+    course.lessonCount += 1;
+    await course.save();
 
     // ==================================================
     // DELETE TEMP FILE
@@ -278,6 +288,12 @@ export const deleteLesson = asynchandler(async (req, res) => {
   }
 
   await Lesson.findByIdAndDelete(req.params.lessonId);
+  // Decrement the lessonCount in the Course model
+  const course = await Course.findById(lesson.course);
+  if (course) {
+    course.lessonCount -= 1;
+    await course.save();
+  }
 
   return res.json(jsend.success("lesson deleted successfully"));
 });
@@ -294,10 +310,7 @@ export const uploadProgress = asynchandler(async (req, res) => {
   // ==================================================
 
   if (!uploadId) {
-    return res.status(400).json({
-      success: false,
-      message: "uploadId is required",
-    });
+    return res.status(400).json(jsend.error("uploadId is required"));
   }
 
   // ==================================================

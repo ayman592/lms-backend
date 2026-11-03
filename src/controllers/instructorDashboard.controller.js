@@ -21,38 +21,18 @@ export const getInstructorDashboard = asynchandler(async (req, res) => {
 
 export const getMyCourses = asynchandler(async (req, res) => {
   const instructorId = req.user._id;
+  const limit = Math.min(parseInt(req.query.limit) || 10, 20); // Default limit to 10 if not provided
+  const page = Math.max(parseInt(req.query.page) || 1, 1); // Default page to 1 if not provided
+  const skip = (page - 1) * limit;
   const courses = await Course.find({
     instructor: instructorId,
-  }).sort({ createdAt: -1 });
+  })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .skip(skip);
   res.json(
     jsend.success({
       courses,
     }),
   );
 });
-// // My draft Courses
-// export const getMyDraftCourses = asynchandler(async (req, res) => {
-//   const courses = await Course.find({
-//     instructor: req.user._id,
-//     status: "draft",
-//   });
-//   res.json(
-//     jsend.success({
-//       courses,
-//     }),
-//   );
-// });
-
-// // My published Courses
-// export const getMyPublishedCourses = asynchandler(async (req, res) => {
-//   const courses = await Course.find({
-//     instructor: req.user._id,
-//     status: "published",
-//   });
-//   console.log("Published courses:", courses);
-//   res.json(
-//     jsend.success({
-//       courses,
-//     }),
-//   );
-// });

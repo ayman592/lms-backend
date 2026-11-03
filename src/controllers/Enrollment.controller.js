@@ -28,6 +28,10 @@ export const enrollCourse = asynchandler(async (req, res) => {
     student,
   });
 
+  // Increment the countOfStudents in the Course model
+  courseExists.countOfStudents += 1;
+  await courseExists.save();
+
   res.status(201).json(jsend.success(enrollment));
 });
 // Cancel Enrollment
@@ -39,35 +43,66 @@ export const cancelEnrollment = asynchandler(async (req, res) => {
   if (!enrollment) {
     return res.status(404).json(jsend.error("Enrollment not found."));
   }
+  // Decrement the countOfStudents in the Course model
+  const course = await Course.findById(enrollment.course);
+  if (course) {
+    course.countOfStudents -= 1;
+    await course.save();
+  }
 
   res.status(200).json(jsend.success("Enrollment canceled."));
 });
 // Get My Courses
 export const getMyCourses = asynchandler(async (req, res) => {
   const studentId = req.user._id;
+  const limit = Math.min(parseInt(req.query.limit) || 10, 20); // Default limit to 10 if not provided
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const skip = (page - 1) * limit;
 
-  const enrollments = await Enrollment.find({ student: studentId }).populate({
-    path: "course",
-    select: "title thumbnail price instructor",
-  });
+  const enrollments = await Enrollment.find({ student: studentId })
+    .populate({
+      path: "course",
+      select: "title thumbnail price instructor lessonCount countOfStudents",
+    })
+    .limit(limit)
+    .skip(skip)
+    .sort({ createdAt: -1 });
 
   res.json(jsend.success(enrollments));
 });
 // Get Course Students
 export const getCourseStudents = asynchandler(async (req, res) => {
   const { courseId } = req.params;
+  const limit = Math.min(parseInt(req.query.limit) || 10, 20);
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const skip = (page - 1) * limit;
+
   const course = await Course.findById(courseId);
   if (!course) {
     return res.status(404).json(jsend.error("Course not found."));
   }
-  if (course.instructor.toString() !== req.user._id.toString()) {
+  if (
+    course.instructor.toString() !== req.user._id.toString() &&
+    req.user.role !== "admin"
+  ) {
     return res.status(403).json(jsend.error("Not allowed."));
   }
-  const students = await Enrollment.find({ course: courseId }).populate(
-    "student",
-    "name email",
+
+  const [students, total] = await Promise.all([
+    Enrollment.find({ course: courseId })
+      .populate("student", "name email profilePicture")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Enrollment.countDocuments({ course: courseId }),
+  ]);
+
+  return res.json(
+    jsend.success({
+      students, // ← مصفوفة
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) },
+    }),
   );
-  res.json(jsend.success(students));
 });
 
 export const checkEnrollment = asynchandler(async (req, res) => {

@@ -1,6 +1,14 @@
 # lms-backend
 
 lms-backend
+
+## Redis authentication sessions
+
+The backend requires Redis for authentication sessions. Set `REDIS_URL` in the
+server environment (for example, `redis://localhost:6379`) before starting the
+server. Login and registration create a one-hour Redis-backed session; logout
+revokes that session, and password changes revoke all sessions for that user.
+
 │
 ├── src
 │

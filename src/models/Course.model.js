@@ -57,13 +57,45 @@ const courseSchema = new mongoose.Schema(
         required: true,
       },
     },
+    lessonCount: {
+      type: Number,
+      default: 0,
+    },
+    countOfStudents: {
+      type: Number,
+      default: 0,
+    },
+    rating: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true },
 );
 
 courseSchema.index({
-  title: "text",
-  description: "text",
+  category: 1,
+  createdAt: -1,
 });
+courseSchema.index({
+  instructor: 1,
+  createdAt: -1,
+});
+courseSchema.index({
+  price: 1,
+  createdAt: -1,
+});
+courseSchema.index({
+  level: 1,
+  createdAt: -1,
+});
+
+courseSchema.index(
+  {
+    title: "text",
+    description: "text",
+  },
+  { weight: { title: 5, description: 10 } },
+);
 
 export default mongoose.model("Course", courseSchema);

@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { type } from "os";
 
 const lessonSchema = new mongoose.Schema(
   {
@@ -44,6 +43,12 @@ const lessonSchema = new mongoose.Schema(
       required: true,
     },
 
+    duration: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     isDeleted: {
       type: Boolean,
       default: false,
@@ -52,4 +57,5 @@ const lessonSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+lessonSchema.index({ course: 1, order: 1 });
 export default mongoose.model("Lesson", lessonSchema);

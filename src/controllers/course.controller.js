@@ -46,7 +46,8 @@ export const getCourses = asynchandler(async (req, res) => {
         createdAt: -1,
       })
       .skip(skip)
-      .limit(pageLimit),
+      .limit(pageLimit)
+      .lean(),
 
     Course.countDocuments(filter),
   ]);
@@ -90,7 +91,9 @@ export const createCourse = asynchandler(async (req, res) => {
       url: result.secure_url,
       publicId: result.public_id,
     },
-
+    lessonCount: 0,
+    countOfStudents: 0,
+    level: req.body.level,
     status: "draft",
   });
 

@@ -17,8 +17,8 @@ enrollmentRoutes.post("/enroll/:courseId", authMiddleware, enrollCourse);
 enrollmentRoutes.get("/my-courses", authMiddleware, getMyCourses);
 enrollmentRoutes.get(
   "/course-students/:courseId",
-  role("admin", "instructor"),
   authMiddleware,
+  role("instructor", "admin"),
   getCourseStudents,
 );
 enrollmentRoutes.get("/check/:courseId", authMiddleware, checkEnrollment);

@@ -9,6 +9,7 @@ import {
   logout,
   getMe,
   updateProfile,
+  refreshAccessToken,
 } from "../controllers/auth.controller.js";
 import {
   validateChangePassword,
@@ -19,6 +20,7 @@ import {
   validateUpdateProfile,
 } from "../validations/auth.validation.js";
 import { uploadImage } from "../middlewares/uploudMiddleware.js";
+
 const AuthRouter = express.Router();
 
 AuthRouter.post(
@@ -28,6 +30,8 @@ AuthRouter.post(
   register,
 );
 AuthRouter.post("/login", validateLogin, login);
+AuthRouter.post("/refresh", refreshAccessToken); // لا يحتاج authMiddleware
+
 AuthRouter.put(
   "/change-password",
   authMiddleware,

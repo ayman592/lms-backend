@@ -5,26 +5,39 @@ import jsend from "jsend";
 import Enrollment from "../models/Enrollment.model.js";
 import bcrypt from "bcryptjs";
 
+// ======================================================
+// Dashboard
+// ======================================================
 export const adminDashboard = asynchandler(async (req, res) => {
-  const totalUsers = await User.countDocuments();
-  const totalCourses = await Course.countDocuments();
-  const totalInstructors = await User.countDocuments({ role: "instructor" });
-  const totalStudents = await User.countDocuments({ role: "student" });
-  const totalEnrollments = await Enrollment.countDocuments();
-  const totalPublishedCourses = await Course.countDocuments({
-    status: "published",
-  });
-  const totalDraftCourse = await Course.countDocuments({
-    status: "draft",
-  });
-  const latestUsers = await User.find()
-    .sort({ createdAt: -1 })
-    .limit(5)
-    .select("-password -__v");
-  const latestCourses = await Course.find()
-    .sort({ createdAt: -1 })
-    .limit(5)
-    .populate("instructor", "name email profilePicture");
+  const [
+    totalUsers,
+    totalCourses,
+    totalInstructors,
+    totalStudents,
+    totalEnrollments,
+    totalPublishedCourses,
+    totalDraftCourse,
+    latestUsers,
+    latestCourses,
+  ] = await Promise.all([
+    User.countDocuments(),
+    Course.countDocuments(),
+    User.countDocuments({ role: "instructor" }),
+    User.countDocuments({ role: "student" }),
+    Enrollment.countDocuments(),
+    Course.countDocuments({ status: "published" }),
+    Course.countDocuments({ status: "draft" }),
+    User.find()
+      .sort({ createdAt: -1 })
+      .limit(9)
+      .select("-password -__v")
+      .lean(),
+    Course.find()
+      .sort({ createdAt: -1 })
+      .limit(9)
+      .populate("instructor", "name email profilePicture")
+      .lean(),
+  ]);
 
   res.json(
     jsend.success({
@@ -41,22 +54,24 @@ export const adminDashboard = asynchandler(async (req, res) => {
   );
 });
 
-// create instructor
+// ======================================================
+// Create Instructor
+// ======================================================
 export const createInstructor = asynchandler(async (req, res) => {
   const { name, email, password } = req.body;
+
   if (!name || !email || !password) {
     return res
       .status(400)
       .json(jsend.error("Name, email and password are required."));
   }
 
-  const existingUser = await User.findOne({
-    email,
-  });
+  const existingUser = await User.findOne({ email });
 
   if (existingUser) {
     return res.status(409).json(jsend.error("Email is already registered."));
   }
+
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const instructor = await User.create({
@@ -76,38 +91,119 @@ export const createInstructor = asynchandler(async (req, res) => {
   );
 });
 
-// suspended user
+// ======================================================
+// Suspend User
+// ======================================================
 export const suspendUser = asynchandler(async (req, res) => {
   const { userId } = req.params;
-  const user = await User.findById(userId).select("-password -__v");
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { isSuspended: true },
+    { new: true },
+  ).select("-password -__v");
+
   if (!user) {
     return res.status(404).json(jsend.error("User not found"));
   }
-  user.isSuspended = true;
-  await user.save();
-  res.json(jsend.success(user));
+
+  // ✅ إرجاع isActive عشان الـ Frontend يفهم
+  res.json(
+    jsend.success({
+      ...user.toObject(),
+      isActive: !user.isSuspended,
+    }),
+  );
 });
 
-// Activate user
+// ======================================================
+// Activate User
+// ======================================================
 export const activateUser = asynchandler(async (req, res) => {
   const { userId } = req.params;
-  const user = await User.findById(userId).select("-password -__v");
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { isSuspended: false },
+    { new: true },
+  ).select("-password -__v");
+
   if (!user) {
     return res.status(404).json(jsend.error("User not found"));
   }
-  user.isSuspended = false;
-  await user.save();
-  res.json(jsend.success(user));
+
+  res.json(
+    jsend.success({
+      ...user.toObject(),
+      isActive: !user.isSuspended,
+    }),
+  );
 });
 
-// delete user
+// ======================================================
+// Delete User
+// ======================================================
 export const deleteUser = asynchandler(async (req, res) => {
   const { userId } = req.params;
-  await User.findByIdAndDelete(userId);
+
+  const user = await User.findByIdAndDelete(userId);
+
+  if (!user) {
+    return res.status(404).json(jsend.error("User not found"));
+  }
+
   res.json(jsend.success("User deleted successfully"));
 });
 
+// ======================================================
+// Get All Users (Pagination + Search + Filter)
+// ======================================================
 export const getAllUsers = asynchandler(async (req, res) => {
-  const users = await User.find().select("-password -__v");
-  res.json(jsend.success(users));
+  const limit = Math.min(parseInt(req.query.limit) || 10, 100);
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const skip = (page - 1) * limit;
+  const search = req.query.search?.trim() || "";
+  const filter = req.query.filter || "all";
+
+  const query = {};
+
+  // بحث في الاسم أو البريد
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  // فلترة حسب الدور
+  if (["instructor", "student", "admin"].includes(filter)) {
+    query.role = filter;
+  }
+
+  // ✅ Promise.all لجلب البيانات والعدد بالتوازي
+  const [users, totalUsers] = await Promise.all([
+    User.find(query)
+      .select("-password -__v")
+      .limit(limit)
+      .skip(skip)
+      .sort({ createdAt: -1 })
+      .lean(),
+    User.countDocuments(query),
+  ]);
+
+  // ✅ إضافة isActive لكل مستخدم
+  const usersWithActive = users.map((u) => ({
+    ...u,
+    isActive: !u.isSuspended,
+  }));
+
+  res.json(
+    jsend.success({
+      users: usersWithActive,
+      page,
+      limit,
+      totalUsers,
+      totalPages: Math.ceil(totalUsers / limit),
+    }),
+  );
 });
