@@ -31,6 +31,7 @@ const allowedOrigins = [
   "https://lms-frontend-ruby-chi.vercel.app",
   "http://localhost:5173",
 ];
+console.log("Allowed Origins:", allowedOrigins);
 
 app.use(
   cors({
