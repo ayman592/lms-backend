@@ -35,12 +35,11 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // السماح بالطلبات التي لا تحتوي على Origin
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-
-      return callback(new Error("Not allowed by CORS"));
+      // المفتاح: تمرير false، وليس new Error
+      return callback(null, false);
     },
     credentials: true,
   }),
